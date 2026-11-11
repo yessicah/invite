@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invitación Especial</title>
+  <!-- Librería de confeti para la celebración al aceptar -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Tipografías Cormorant Garamond y Montserrat -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #120910;
+      --bg-card: #231220;
+      --accent-burgundy: #4a1d36;
+      --gold-main: #dfba73;
+      --gold-light: #f4e0a5;
+      --gold-subtle: rgba(223, 186, 115, 0.2);
+      --text-light: #f7f3ed;
+      --text-muted: #cbb8c7;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-light);
+      font-family: 'Montserrat', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 36px 20px;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Lienzo de partículas doradas parallax */
+    #particleCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Halos de luz ambiental con respuesta parallax */
+    .ambient-glow-1 {
+      position: fixed;
+      width: 720px;
+      height: 720px;
+      background: radial-gradient(circle, rgba(74, 29, 54, 0.45) 0%, rgba(18, 9, 16, 0) 70%);
+      top: 35%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 1;
+      transition: transform 0.25s ease-out;
+    }
+
+    .ambient-glow-2 {
+      position: fixed;
+      width: 520px;
+      height: 520px;
+      background: radial-gradient(circle, rgba(223, 186, 115, 0.08) 0%, rgba(18, 9, 16, 0) 70%);
+      bottom: 8%;
+      right: 15%;
+      pointer-events: none;
+      z-index: 1;
+      transition: transform 0.3s ease-out;
+    }
+
+    .container {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 460px;
+      perspective: 1000px;
+    }
+
+    /* Estilos del Sobre Cerrado (Vista Inicial Misteriosa) */
+    .envelope-wrapper {
+      position: relative;
+      width: 100%;
+      height: 340px;
+      background-color: var(--bg-card);
+      border-radius: 16px;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.65), 0 0 35px rgba(74, 29, 54, 0.4);
+      cursor: pointer;
+      transition: transform 0.6s ease, box-shadow 0.6s ease;
+      border: 1px solid rgba(223, 186, 115, 0.22);
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .envelope-wrapper:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 30px 60px rgba(0,0,0,0.75), 0 0 45px rgba(223, 186, 115, 0.28);
+    }
+
+    .envelope-flap {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 170px;
+      background: linear-gradient(135deg, #2e172a 0%, #1a0b17 100%);
+      clip-path: polygon(0 0, 50% 100%, 100% 0);
+      transform-origin: top;
+      transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 4;
+      border-bottom: 1px solid rgba(223, 186, 115, 0.25);
+    }
+
+    .wax-seal {
+      position: absolute;
+      top: 150px;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 64px;
+      height: 64px;
+      background: radial-gradient(circle, #dfba73 0%, #a88138 100%);
+      border-radius: 50%;
+      z-index: 5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.55), inset 0 2px 4px rgba(255,255,255,0.45);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      border: 1px solid rgba(255,255,255,0.35);
+    }
+
+    .wax-seal span {
+      color: #120910;
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 26px;
+      font-weight: 600;
+    }
+
+    .envelope-front-preview {
+      position: absolute;
+      bottom: 45px;
+      width: 100%;
+      text-align: center;
+      z-index: 3;
+      padding: 0 20px;
+    }
+
+    .envelope-front-preview h3 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 28px;
+      color: var(--gold-light);
+      letter-spacing: 1.5px;
+      margin-bottom: 6px;
+    }
+
+    .envelope-front-preview p {
+      font-size: 11px;
+      color: var(--text-muted);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+
+    /* Estilos de la Tarjeta Principal */
+    .card-container {
+      display: none;
+      opacity: 0;
+      background-color: var(--bg-card);
+      border-radius: 20px;
+      padding: 44px 32px;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.75), inset 0 0 0 1px rgba(223, 186, 115, 0.25);
+      border: 1px solid rgba(223, 186, 115, 0.3);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+      transform: translateY(20px);
+    }
+
+    .card-container.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .card-header {
+      text-align: center;
+      margin-bottom: 26px;
+      border-bottom: 1px solid rgba(223, 186, 115, 0.15);
+      padding-bottom: 22px;
+    }
+
+    .card-header .tag {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: var(--gold-main);
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .card-header h1 {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 34px;
+      color: var(--gold-light);
+      font-weight: 600;
+      line-height: 1.2;
+    }
+
+    .card-body p.intro {
+      font-size: 14.5px;
+      line-height: 1.75;
+      color: var(--text-light);
+      text-align: center;
+      margin-bottom: 28px;
+      font-weight: 300;
+    }
+
+    /* Bloque de Detalles */
+    .details-box {
+      padding: 6px 0;
+      margin-bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .detail-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .detail-icon {
+      width: 38px;
+      height: 38px;
+      min-width: 38px;
+      border-radius: 50%;
+      border: 1px solid rgba(223, 186, 115, 0.3);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: var(--gold-main);
+      font-size: 16px;
+    }
+
+    .detail-text h4 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .detail-text p {
+      font-size: 14.5px;
+      color: var(--gold-light);
+      font-weight: 500;
+    }
+
+    /* Recuadro Sugerencia de Maridaje con Borde Punteado Dorado */
+    .pairing-note {
+      background: rgba(74, 29, 54, 0.25);
+      border: 1px dashed var(--gold-main);
+      border-radius: 12px;
+      padding: 18px 16px;
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .pairing-note h4 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.8px;
+      color: var(--gold-main);
+      margin-bottom: 8px;
+    }
+
+    .pairing-note p {
+      font-size: 13.5px;
+      color: var(--text-light);
+      font-weight: 300;
+      line-height: 1.6;
+    }
+
+    .pairing-note span {
+      color: var(--gold-light);
+      font-weight: 600;
+    }
+
+    /* Botón Único Dorado */
+    .action-button {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #dfba73 0%, #b8934b 100%);
+      color: #120910;
+      border: none;
+      border-radius: 30px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(223, 186, 115, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .action-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(223, 186, 115, 0.45);
+    }
+
+    .action-button:active {
+      transform: translateY(0);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .surprise-note {
+      margin: 0 0 24px;
+      padding: 14px 12px;
+      text-align: center;
+      color: var(--gold-light);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 20px;
+      font-style: italic;
+      border-top: 1px solid rgba(223,186,115,.25);
+      border-bottom: 1px solid rgba(223,186,115,.25);
+    }
+    .secret-message {
+      display: none; margin-top: 16px; padding: 20px 16px; text-align: center;
+      border: 1px solid var(--gold-main); border-radius: 12px;
+      background: rgba(74,29,54,.35); animation: fadeIn .8s ease forwards;
+    }
+    .secret-message.visible { display: block; }
+    .secret-message .secret-label {
+      color: var(--gold-main); text-transform: uppercase; letter-spacing: 2px;
+      font-size: 9px; margin-bottom: 9px;
+    }
+    .secret-message p {
+      color: var(--gold-light); font: italic 22px/1.4 'Cormorant Garamond', serif;
+    }
+    .secret-message small { display:block; color:var(--text-muted); font-size:10px; margin-top:10px; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+
+    @media (max-width: 420px) {
+      .card-container {
+        padding: 36px 22px;
+      }
+      .card-header h1 {
+        font-size: 30px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Fondo Parallax con Partículas y Halos Ambientales -->
+  <canvas id="particleCanvas"></canvas>
+  <div class="ambient-glow-1" id="glow1"></div>
+  <div class="ambient-glow-2" id="glow2"></div>
+
+  <div class="container">
+    <!-- 1. Vista Inicial de Sobre Cerrado -->
+    <div class="envelope-wrapper" id="envelope" role="button" tabindex="0" aria-label="Abrir invitación">
+      <div class="envelope-flap" id="flap"></div>
+      <div class="wax-seal" id="seal"><span>♡</span></div>
+      <div class="envelope-front-preview">
+        <h3>Para ti</h3>
+        <p>Toca para abrir</p>
+      </div>
+    </div>
+
+    <!-- 2. Tarjeta Principal Revelada -->
+    <div class="card-container" id="card">
+      <div class="card-header">
+        <h1>Una Cita Especial</h1>
+      </div>
+
+      <div class="card-body">
+        <p class="intro">
+          ¡Por fin! Me alegra mucho que haya llegado el momento en que vengas a compartir una cena especial conmigo.
+        </p>
+
+        <div class="details-box">
+          <div class="detail-item">
+            <div class="detail-icon">📅</div>
+            <div class="detail-text">
+              <h4>Cuándo</h4>
+              <p>Este Viernes (te espero desde las 20:30)</p>
+            </div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-icon">📍</div>
+            <div class="detail-text">
+              <h4>Dónde</h4>
+              <p>Mi casa</p>
+            </div>
+          </div>
+        </div>
+
+        <p class="surprise-note">La cena guarda una sorpresa que descubrirás esa noche✨</p>
+
+<!-- Sugerencia de Maridaje con Borde Punteado Dorado -->
+        <div class="pairing-note">
+          <h4>Sugerencia de Maridaje</h4>
+          <p>Para acompañar la cena, si te apetece traer una botella de <span>Pinot Noir</span> que te guste, será el maridaje perfecto para la ocasión.</p>
+        </div>
+
+        <!-- Botón Único de Aceptación -->
+        <button class="action-button" id="acceptBtn" onclick="acceptInvitation()">Aceptar Invitación</button>
+
+
+        <div class="secret-message" id="secretMessage" aria-live="polite">
+          <div class="secret-label">Un último detalle</div>
+          <p>Lo mejor de esta invitación no es la cena, sino tenerte allí para compartirla🥂</p>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Lógica de Apertura del Sobre 3D
+    const envelope = document.getElementById('envelope');
+    const flap = document.getElementById('flap');
+    const seal = document.getElementById('seal');
+    const card = document.getElementById('card');
+
+    function openEnvelope() {
+      flap.style.transform = 'rotateX(180deg)';
+      seal.style.opacity = '0';
+      seal.style.transform = 'translate(-50%, -50%) scale(0.5)';
+
+      setTimeout(() => {
+        envelope.style.display = 'none';
+        card.classList.add('active');
+      }, 600);
+    }
+
+    envelope.addEventListener('click', openEnvelope);
+    envelope.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openEnvelope();
+      }
+    });
+
+    // Acción al Aceptar Invitación (Confeti y mensaje secreto)
+    function acceptInvitation() {
+      const btn = document.getElementById('acceptBtn');
+
+      btn.style.display = 'none';
+      document.getElementById('secretMessage').classList.add('visible');
+
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 95,
+          spread: 75,
+          origin: { y: 0.7 },
+          colors: ['#dfba73', '#f4e0a5', '#4a1d36', '#7a2e58']
+        });
+      }
+    }
+
+
+    // Fondo Parallax con Partículas Doradas y Halos Ambientales
+    const canvas = document.getElementById('particleCanvas');
+    const ctx = canvas.getContext('2d');
+    const glow1 = document.getElementById('glow1');
+    const glow2 = document.getElementById('glow2');
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    const particles = [];
+    const particleCount = 60;
+
+    for (let i = 0; i < particleCount; i++) {
+      const depth = Math.random() * 1.5 + 0.5;
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        radius: (Math.random() * 1.6 + 0.5) * depth,
+        alpha: Math.random() * 0.55 + 0.2,
+        speedY: (Math.random() * 0.3 + 0.08) * depth,
+        speedX: (Math.random() - 0.5) * 0.15,
+        depth: depth
+      });
+    }
+
+    let targetMouseX = 0;
+    let targetMouseY = 0;
+    let currentMouseX = 0;
+    let currentMouseY = 0;
+
+    window.addEventListener('mousemove', (e) => {
+      targetMouseX = (e.clientX - window.innerWidth / 2);
+      targetMouseY = (e.clientY - window.innerHeight / 2);
+    });
+
+    // Soporte táctil sutil para el fondo parallax en móviles
+    window.addEventListener('touchmove', (e) => {
+      if (e.touches.length > 0) {
+        targetMouseX = (e.touches[0].clientX - window.innerWidth / 2) * 0.6;
+        targetMouseY = (e.touches[0].clientY - window.innerHeight / 2) * 0.6;
+      }
+    }, { passive: true });
+
+    function animateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Suavizado del movimiento parallax
+      currentMouseX += (targetMouseX - currentMouseX) * 0.05;
+      currentMouseY += (targetMouseY - currentMouseY) * 0.05;
+
+      // Movimiento sutil de halos de luz ambiental
+      glow1.style.transform = `translate(calc(-50% + ${currentMouseX * 0.04}px), calc(-50% + ${currentMouseY * 0.04}px))`;
+      glow2.style.transform = `translate(${-currentMouseX * 0.03}px, ${-currentMouseY * 0.03}px)`;
+
+      particles.forEach(p => {
+        p.y -= p.speedY;
+        p.x += p.speedX;
+
+        if (p.y < -10) p.y = canvas.height + 10;
+        if (p.y > canvas.height + 10) p.y = -10;
+        if (p.x < -10) p.x = canvas.width + 10;
+        if (p.x > canvas.width + 10) p.x = -10;
+
+        const parallaxX = p.x + currentMouseX * 0.025 * p.depth;
+        const parallaxY = p.y + currentMouseY * 0.025 * p.depth;
+
+        ctx.beginPath();
+        ctx.arc(parallaxX, parallaxY, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(223, 186, 115, ${p.alpha})`;
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = '#dfba73';
+        ctx.fill();
+      });
+
+      requestAnimationFrame(animateParticles);
+    }
+
+    window.onload = function () {
+      animateParticles();
+    };
+  </script>
+</body>
+</html>
